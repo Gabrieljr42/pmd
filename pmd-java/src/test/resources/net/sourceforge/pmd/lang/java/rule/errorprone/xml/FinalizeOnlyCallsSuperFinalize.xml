@@ -28,4 +28,154 @@ public class Foo {
 }
         ]]></code>
     </test-code>
+    <test-code>
+        <description>#7278 super.finalize in a bare block</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {
+            super.finalize();
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>#7278 super.finalize in several bare blocks</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {
+            {
+                super.finalize();
+            }
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup before a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        cleanup();
+        { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup after a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { super.finalize(); }
+        cleanup();
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup inside a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { cleanup(); super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Conditional calls do more than call super.finalize</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        if (enabled) { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Synchronized calls do more than call super.finalize</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        synchronized (this) { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Try finally is not a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        try { cleanup(); } finally { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Calls inside lambdas are not the enclosing method body</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        Runnable callback = () -> {
+            try { super.finalize(); } catch (Throwable ignored) { }
+        };
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Multiple calls in separate bare blocks</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { super.finalize(); }
+        { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Empty bare blocks do nothing besides the super call</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {}
+        { super.finalize(); }
+        {}
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Nested finalizers are evaluated independently</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        class Inner {
+            protected void finalize() throws Throwable {
+                { super.finalize(); }
+            }
+        }
+        super.finalize();
+    }
+}
+        ]]></code>
+    </test-code>
 </test-data>

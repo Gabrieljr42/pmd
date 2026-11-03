@@ -1810,14 +1810,17 @@ If the finalize() is implemented, its last action should be to call super.finali
         <properties>
             <property name="xpath">
                 <value>
-<!-- in English: a method declaration of finalize(), with no arguments, containing
-a block whose last statement is NOT a call to super.finalize -->
+<!-- Look through bare blocks, without entering other statements or nested types. -->
 <![CDATA[
-//MethodDeclaration[@Name = "finalize"][@Arity = 0]
-   /Block/*[last()]
+//MethodDeclaration[@Name = "finalize"][@Arity = 0]/
+(let $method := . return (Block/descendant::*[not(self::Block)]
+          [ancestor::*[not(self::Block)][1] is $method])[last()]
       [not(MethodCall[@MethodName = "finalize"]/SuperExpression)]
-      [not(FinallyClause/Block/ExpressionStatement/
-          MethodCall[@MethodName = "finalize"]/SuperExpression)]
+      [not(FinallyClause[let $finally := . return
+          Block/descendant::ExpressionStatement
+             [ancestor::*[not(self::Block)][1] is $finally]
+             /MethodCall[@MethodName = "finalize"]/SuperExpression])]
+)
 ]]>
                 </value>
             </property>
@@ -1847,7 +1850,12 @@ If the finalize() is implemented, it should do something besides just calling su
                 <value>
 <![CDATA[
 //MethodDeclaration[@Name='finalize'][@Arity = 0]
-   [Block[@Size=1]/ExpressionStatement/MethodCall[@MethodName = "finalize"][SuperExpression]]
+   [let $method := . return
+      count(Block/descendant::*[not(self::Block)]
+         [ancestor::*[not(self::Block)][1] is $method]) = 1
+      and exists(Block/descendant::ExpressionStatement
+         [ancestor::*[not(self::Block)][1] is $method]
+         /MethodCall[@MethodName = "finalize"][SuperExpression])]
 ]]>
                 </value>
             </property>

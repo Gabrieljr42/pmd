@@ -93,4 +93,175 @@ public class Outer {
 }
 ]]></code>
     </test-code>
+    <test-code>
+        <description>#7278 super.finalize in a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {
+            super.finalize();
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>#7278 super.finalize in several bare blocks</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {
+            {
+                super.finalize();
+            }
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup before a nested super call</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        cleanup();
+        { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup after a nested super call</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { super.finalize(); }
+        cleanup();
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Cleanup after super inside the same block</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { super.finalize(); cleanup(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Conditional calls cannot satisfy the final action</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        if (enabled) { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Synchronized calls are not bare blocks</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        synchronized (this) { super.finalize(); }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>A try finally statement wrapped in a bare block</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        {
+            try { cleanup(); } finally { super.finalize(); }
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>A super call wrapped in a bare block inside finally</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        try { cleanup(); } finally {
+            { super.finalize(); }
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>A lambda super call cannot satisfy the enclosing finalizer</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        Runnable callback = () -> {
+            try { super.finalize(); } catch (Throwable ignored) { }
+        };
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>A nested type super call cannot satisfy the enclosing finalizer</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        class Inner {
+            protected void finalize() throws Throwable { super.finalize(); }
+        }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Empty trailing bare blocks do not change the final action</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        super.finalize();
+        { {} }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Nested bare block without a super call</description>
+        <expected-problems>1</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { { cleanup(); } }
+    }
+}
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Empty bare blocks contain no final statement</description>
+        <expected-problems>0</expected-problems>
+        <code><![CDATA[
+public class Foo {
+    protected void finalize() throws Throwable {
+        { {} }
+    }
+}
+        ]]></code>
+    </test-code>
 </test-data>

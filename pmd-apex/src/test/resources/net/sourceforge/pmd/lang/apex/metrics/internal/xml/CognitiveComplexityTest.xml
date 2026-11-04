@@ -417,4 +417,71 @@
             ]]>
         </code>
     </test-code>
+    <test-code>
+        <description>#7294 Qualified foreign calls do not change complexity or later nesting</description>
+        <expected-problems>4</expected-problems>
+        <expected-messages>
+            <message>'Foo#add(String)' has value 1.</message>
+            <message>'Foo#run(Foo)' has value 1.</message>
+            <message>'Foo#save()' has value 1.</message>
+            <message>'Foo#create()' has value 1.</message>
+        </expected-messages>
+        <code><![CDATA[
+            class Foo extends Parent {
+                List<String> values;
+                Foo other;
+                void add(String value) {
+                    this.values.add(value);
+                    if (value != null) { values.add(value); }
+                }
+                void run(Foo other) {
+                    other.run(other);
+                    if (other != null) { other?.run(other); }
+                }
+                void save() {
+                    super.save();
+                    if (other != null) { getOther().save(); }
+                }
+                static void create() {
+                    Other.create();
+                    if (true) { Other.create(); }
+                }
+            }
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Unqualified and explicit this recursion remain recognized</description>
+        <expected-problems>2</expected-problems>
+        <expected-messages>
+            <message>'Foo#first(Integer)' has value 2.</message>
+            <message>'Foo#second(Integer)' has value 2.</message>
+        </expected-messages>
+        <code><![CDATA[
+            class Foo {
+                Integer first(Integer n) {
+                    if (n == 0) { return 0; }
+                    return first(n - 1);
+                }
+                Integer second(Integer n) {
+                    if (n == 0) { return 0; }
+                    return this.second(n - 1);
+                }
+            }
+        ]]></code>
+    </test-code>
+    <test-code>
+        <description>Class-qualified static recursion remains recognized case-insensitively</description>
+        <expected-problems>1</expected-problems>
+        <expected-messages>
+            <message>'Foo#recurse(Integer)' has value 2.</message>
+        </expected-messages>
+        <code><![CDATA[
+            class Foo {
+                static Integer recurse(Integer n) {
+                    if (n == 0) { return 0; }
+                    return fOo.ReCuRsE(n - 1);
+                }
+            }
+        ]]></code>
+    </test-code>
 </test-data>

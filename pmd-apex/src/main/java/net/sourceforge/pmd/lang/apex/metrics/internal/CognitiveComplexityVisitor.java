@@ -8,14 +8,17 @@ import net.sourceforge.pmd.lang.apex.ast.ASTBlockStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTBooleanExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTCatchBlockStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTDoLoopStatement;
+import net.sourceforge.pmd.lang.apex.ast.ASTEmptyReferenceExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTForEachStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTForLoopStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTIfElseBlockStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTMethod;
 import net.sourceforge.pmd.lang.apex.ast.ASTMethodCallExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTPrefixExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTReferenceExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTSwitchStatement;
 import net.sourceforge.pmd.lang.apex.ast.ASTTernaryExpression;
+import net.sourceforge.pmd.lang.apex.ast.ASTThisVariableExpression;
 import net.sourceforge.pmd.lang.apex.ast.ASTWhileLoopStatement;
 import net.sourceforge.pmd.lang.apex.ast.ApexNode;
 import net.sourceforge.pmd.lang.apex.ast.ApexVisitorBase;
@@ -36,7 +39,7 @@ public class CognitiveComplexityVisitor extends ApexVisitorBase<State, Void> {
         private int nestingLevel = 0;
 
         private BooleanOperator currentBooleanOperation = null;
-        private String methodName = null;
+        private ASTMethod method = null;
 
         public int getComplexity() {
             return complexity;
@@ -75,14 +78,38 @@ public class CognitiveComplexityVisitor extends ApexVisitorBase<State, Void> {
             nestingLevel--;
         }
 
-        void methodCall(String methodCalledName) {
-            if (methodCalledName.equals(methodName)) {
+        void methodCall(ASTMethodCallExpression call) {
+            if (method != null && call.getMethodName().equalsIgnoreCase(method.getCanonicalName())
+                && isCurrentReceiver(call)) {
                 structureComplexity();
             }
         }
 
-        void setMethodName(String name) {
-            methodName = name;
+        private boolean isCurrentReceiver(ASTMethodCallExpression call) {
+            // Apex has no resolved method targets here. Restrict the name-based check to
+            // unqualified calls, `this`, and the declaring class of a static method.
+            ApexNode<?> receiver = call.getChild(0);
+            if (receiver instanceof ASTEmptyReferenceExpression) {
+                return true;
+            }
+            if (!(receiver instanceof ASTReferenceExpression)) {
+                return false;
+            }
+            ASTReferenceExpression reference = (ASTReferenceExpression) receiver;
+            if (reference.getNumChildren() == 0) {
+                String definingType = method.getDefiningType();
+                String simpleType = definingType.substring(definingType.lastIndexOf('.') + 1);
+                return method.getModifiers().isStatic()
+                    && (reference.getName().equalsIgnoreCase(definingType)
+                        || reference.getName().equalsIgnoreCase(simpleType));
+            }
+            // `this.field.call()` and calls on computed receivers are not calls on `this`.
+            return reference.getNames().isEmpty() && reference.getNumChildren() == 1
+                && reference.getChild(0) instanceof ASTThisVariableExpression;
+        }
+
+        void setMethod(ASTMethod method) {
+            this.method = method;
         }
     }
 
@@ -204,13 +231,13 @@ public class CognitiveComplexityVisitor extends ApexVisitorBase<State, Void> {
 
     @Override
     public Void visit(ASTMethod node, State state) {
-        state.setMethodName(node.getCanonicalName());
+        state.setMethod(node);
         return super.visit(node, state);
     }
 
     @Override
     public Void visit(ASTMethodCallExpression node, State state) {
-        state.methodCall(node.getMethodName());
+        state.methodCall(node);
         return super.visit(node, state);
     }
 

@@ -26,6 +26,9 @@ This is a {{ site.pmd.release_type }} release.
 
 ### 🐛️ Fixed Issues
 
+* apex-design
+  * [#7294](https://github.com/pmd/pmd/issues/7294): CognitiveComplexity falsely detects recursion when calling another object's method with the same name
+
 ### 🚨️ API Changes
 
 ### ✨️ Merged pull requests
